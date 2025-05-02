@@ -1,14 +1,14 @@
 import streamlit as st
 import numpy as np
-import pickle
+from joblib import load  # Changed import
 from PIL import Image
 import requests
 from io import BytesIO
 from datetime import datetime
 
-# Load the model
+# Load the model 
 with open('random_forest_model_Car.joblib', 'rb') as f:
-    model = pickle.load(f)
+    model = load(f)  
 
 # Streamlit UI
 st.title("🚗 Car Price Prediction")
