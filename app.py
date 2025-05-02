@@ -7,7 +7,7 @@ from io import BytesIO
 from datetime import datetime
 
 # Load the model
-with open('random_forest_model_car.pkl', 'rb') as f:
+with open('random_forest_model_Car.joblib', 'rb') as f:
     model = pickle.load(f)
 
 # Streamlit UI
