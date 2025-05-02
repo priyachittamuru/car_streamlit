@@ -4,6 +4,7 @@ import pickle
 from PIL import Image
 import requests
 from io import BytesIO
+from datetime import datetime
 
 # Load the model
 with open('random_forest_model_car.pkl', 'rb') as f:
@@ -13,42 +14,76 @@ with open('random_forest_model_car.pkl', 'rb') as f:
 st.title("🚗 Car Price Prediction")
 st.write("This app predicts car prices using a machine learning model.")
 
-# Add car image from web
+# Add car image
 try:
     response = requests.get('https://cdn.pixabay.com/photo/2012/05/29/00/43/car-49278_1280.jpg')
     car_image = Image.open(BytesIO(response.content))
     st.image(car_image, caption='Car Price Prediction', use_column_width=True)
 except:
-    st.warning("Couldn't load car image, proceeding without it")
+    st.warning("Couldn't load car image")
 
 # Collect user input
 col1, col2 = st.columns(2)
 
 with col1:
-    year = st.number_input("Manufacturing Year", min_value=1980, max_value=2023, value=2018)
-    mileage = st.number_input("Mileage (miles)", min_value=0, value=50000)
-    engine_size = st.number_input("Engine Size (L)", min_value=0.5, max_value=8.0, value=2.0, step=0.1)
+    engine_size = st.number_input("Engine Size (L)", min_value=1.0, max_value=8.0, value=2.0, step=0.1)
+    mileage = st.number_input("Mileage", min_value=0, value=50000)
+    doors = st.selectbox("Number of Doors", options=[2, 3, 4, 5])
+    owner_count = st.number_input("Owner Count", min_value=0, max_value=10, value=1)
 
 with col2:
-    horsepower = st.number_input("Horsepower", min_value=50, max_value=1000, value=200)
-    fuel_type = st.selectbox("Fuel Type", options=["Gasoline", "Diesel", "Hybrid", "Electric"])
-    transmission = st.selectbox("Transmission", options=["Automatic", "Manual"])
+    year = st.number_input("Manufacturing Year", min_value=1980, max_value=datetime.now().year, value=2018)
+    age = datetime.now().year - year  # Calculate age
+    fuel_type = st.selectbox("Fuel Type", options=["Diesel", "Petrol", "Hybrid", "Electric"])
+    transmission = st.selectbox("Transmission", options=["Manual", "Automatic", "CVT"])
+    brand = st.selectbox("Brand", options=["Toyota", "Honda", "Ford", "BMW", "Mercedes"])
+    model_name = st.selectbox("Model", options=["Camry", "Civic", "Focus", "3 Series", "C-Class"])
+
+# Encode categorical variables
+fuel_type_encoded = {
+    "Diesel": 0,
+    "Petrol": 1,
+    "Hybrid": 2,
+    "Electric": 3
+}.get(fuel_type, 0)
+
+transmission_encoded = {
+    "Manual": 0,
+    "Automatic": 1,
+    "CVT": 2
+}.get(transmission, 0)
+
+# These would need to match your actual encoding values
+brand_encoded = {
+    "Toyota": 8900.0,
+    "Honda": 9000.0,
+    "Ford": 8800.0,
+    "BMW": 9500.0,
+    "Mercedes": 9600.0
+}.get(brand, 8900.0)
+
+brand_model_encoded = {
+    "Camry": 8800.0,
+    "Civic": 8900.0,
+    "Focus": 8700.0,
+    "3 Series": 9500.0,
+    "C-Class": 9600.0
+}.get(model_name, 8800.0)
 
 # Button to predict
 if st.button("Predict Price"):
     try:
-        # Create input array with the exact features your model expects
+        # Create input array in EXACT order of training columns
         input_data = np.array([[
-            year,
-            mileage,
-            engine_size,
-            horsepower,
-            1 if fuel_type == "Diesel" else 0,
-            1 if fuel_type == "Electric" else 0,
-            1 if fuel_type == "Gasoline" else 0,
-            1 if fuel_type == "Hybrid" else 0,
-            1 if transmission == "Automatic" else 0,
-            1 if transmission == "Manual" else 0
+            engine_size,          # Engine_Size
+            mileage,              # Mileage
+            doors,                # Doors
+            owner_count,          # Owner_Count
+            age,                  # Age
+            fuel_type_encoded,    # Fuel_Type_Encoded
+            transmission_encoded, # Transmission_Encoded
+            brand_encoded,        # Brand_Encoded
+            brand_model_encoded   # Brand_Model_Encoded
         ]])
         
         # Make prediction
@@ -57,14 +92,6 @@ if st.button("Predict Price"):
         # Display result
         st.success(f"### Predicted Price: ${predicted_price:,.2f}")
         
-        # Simple price category
-        if predicted_price < 15000:
-            st.info("Budget Car")
-        elif predicted_price < 35000:
-            st.info("Mid-Range Car")
-        else:
-            st.info("Luxury Car")
-            
     except Exception as e:
         st.error(f"Error making prediction: {str(e)}")
         st.error("Please check that all input values are valid")
@@ -72,5 +99,7 @@ if st.button("Predict Price"):
 # Add some footer information
 st.markdown("---")
 st.markdown("""
-**Note:** This prediction is based on a machine learning model. Actual prices may vary based on market conditions.
+**Note:** 
+- Brand and model encodings are example values - replace with your actual encoded values
+- Price prediction is based on machine learning model
 """)
